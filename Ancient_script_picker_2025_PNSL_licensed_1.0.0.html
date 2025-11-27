@@ -1,0 +1,781 @@
+<!--
+PNSL (Permissive Non-Sale License)
+Copyright © 2025 Christopher Forster
+
+Permission to use, copy, modify, and/or distribute this software for any purpose without charging a fee specifically for the software itself is hereby granted, provided that the above copyright notice and this permission notice appear in all copies. You may not introduce more restrictions.
+
+THIS SOFTWARE IS PROVIDED ‘AS IS’ AND WITHOUT ANY WARRANTIES. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT OR INDIRECT LOSSES OR DAMAGES ARISING FROM THE USE OF THIS SOFTWARE.
+
+Any binary or combined work that directly incorporates PNSL-licensed code is considered a derivative work and must comply with this license. However, merely calling, linking to, or interacting with unmodified, separately distributed PNSL-licensed code does not, by itself, constitute a derivative work.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Ancient Script Picker 2025 — PNSL</title>
+
+<!-- Local fonts: place Aegean.woff2 / Aegean.otf / Aegean.ttf next to this file -->
+<style>
+@font-face{
+  font-family:"Aegean";
+  src: local("Aegean"),
+       url("./Aegean.woff2") format("woff2"),
+       url("./Aegean.otf")   format("opentype"),
+       url("./Aegean.ttf")   format("truetype");
+  font-display: swap;
+}
+
+:root{
+  --bg:#1e1e1e;
+  --fg:#ebebeb;
+  --btn:#323232;
+  --btnH:#505050;
+  --pad:10px;
+  --ctrl-h:80px;
+  --btn-size:48px;
+  --gap:8px;
+  --border:#444;
+  /* Font size controls */
+  --output-font-size:16px;
+  --char-font-size:24px;
+}
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--fg);
+  font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Arial,sans-serif;
+}
+.app{
+  display:grid;
+  grid-template-rows:auto auto 1fr auto;
+  min-height:100%;
+}
+header{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:10px;
+  padding:var(--pad);
+}
+.button-group{
+  display:flex;
+  gap:8px;
+}
+@media (max-width: 768px) {
+  header {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    gap: 8px;
+  }
+  .button-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 8px;
+  }
+  .button-group .btn {
+    min-width: auto;
+    height: 60px;
+    font-size: 14px;
+    padding: 0 8px;
+  }
+  .button-group .btn.icon {
+    min-width: auto;
+  }
+}
+textarea#out{
+  height:var(--ctrl-h);
+  resize:none;
+  border:1px solid #333;
+  border-radius:8px;
+  background:#000;
+  color:#f5f5f5;
+  padding:10px;
+  box-sizing:border-box;
+  font-size:var(--output-font-size);
+  transition: font-size 0.2s ease;
+}
+.btn{
+  display:inline-grid;
+  place-items:center;
+  height:var(--ctrl-h);
+  min-width:120px;
+  padding:0 16px;
+  border:0;
+  border-radius:10px;
+  background:var(--btn);
+  color:#fff;
+  cursor:pointer;
+  font:inherit;
+}
+.btn:hover,
+.tab[aria-selected="true"]{
+  background:var(--btnH);
+}
+.btn:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+.btn.icon{
+  min-width:60px;
+  font-weight:bold;
+}
+.btn.icon:active{
+  background:var(--btnH);
+  transform:scale(0.95);
+}
+.tabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  padding:0 var(--pad) var(--pad);
+}
+.tab{
+  border:0;
+  border-radius:10px;
+  background:#2e2e2e;
+  color:#fff;
+  padding:8px 14px;
+  cursor:pointer;
+  font:inherit;
+}
+.tab:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+.content{
+  padding:10px;
+  height:100%;
+  overflow:auto;
+}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(var(--btn-size),var(--btn-size)));
+  gap:7px;
+}
+.char{
+  width:var(--btn-size);
+  height:var(--btn-size);
+  display:grid;
+  place-items:center;
+  border:0;
+  border-radius:10px;
+  background:var(--btn);
+  color:#fff;
+  font-size:var(--char-font-size);
+  cursor:pointer;
+  overflow:hidden;
+  transition: font-size 0.2s ease, background-color 0.2s ease;
+  font-family:inherit;
+}
+.char:hover{background:#444}
+.char:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+.section{margin:12px 4px 18px}
+.section h4{margin:0 0 6px;font-size:15px}
+.line{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:7px}
+.help-note{
+  margin:10px 2px 0;
+  font-size:.9rem;
+  color:#cfcfcf;
+}
+.help-note a {
+  color: #8ab4f8;
+  text-decoration: underline;
+}
+footer{
+  border-top:1px solid #2b2b2b;
+  margin-top:8px;
+  padding:10px;
+  font-size:13px;
+  color:#cfcfcf;
+}
+
+/* Scoped font families (apply to textarea and character buttons when tab active) */
+.phaistos #out, .phaistos .char{
+  font-family:"Aegean","Segoe UI Historic","Segoe UI Symbol","Symbola","FreeSerif",serif;
+}
+.linearA  #out, .linearA  .char{
+  font-family:"Aegean","Noto Sans Linear A","NotoSansLinearA","Segoe UI Historic",serif;
+}
+.linearB  #out, .linearB  .char{
+  font-family:"Aegean","Noto Sans Linear B","NotoSansLinearB","Segoe UI Historic",serif;
+}
+.etruscan #out, .etruscan .char{
+  font-family:"Aegean","Noto Sans Old Italic","NotoSansOldItalic","Segoe UI Historic",serif;
+}
+.runes    #out, .runes    .char{
+  font-family:"Segoe UI Historic","Segoe UI Symbol","Aegean","Noto Sans Runic","Noto Sans Symbols 2",serif;
+}
+
+/* License modal */
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.7);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:100;
+}
+.modal{
+  background:#050505;
+  border-radius:.75rem;
+  border:1px solid var(--border);
+  max-width:600px;
+  max-height:80vh;
+  width:90vw;
+  padding:1rem 1.25rem;
+  box-shadow:0 18px 55px rgba(0,0,0,.7);
+  display:flex;
+  flex-direction:column;
+}
+.modal header{
+  position:static;
+  border:none;
+  padding:0 0 .5rem;
+  background:none;
+  display:flex;
+  align-items:center;
+}
+.modal .title{
+  font-weight:600;
+  font-size:1.2rem;
+}
+.modal-body{
+  flex:1 1 auto;
+  overflow:auto;
+  padding-right:.25rem;
+}
+.modal pre{
+  white-space:pre-wrap;
+  font-family:ui-monospace,Menlo,"SF Mono",Consolas,monospace;
+  font-size:.95rem;
+  margin:0;
+  color:var(--fg);
+}
+.modal .close-btn{
+  margin-left:auto;
+  background:none;
+  border:none;
+  color:#fff;
+  font-size:1.25rem;
+  cursor:pointer;
+  padding:6px 8px;
+  line-height:1;
+}
+.modal .close-btn:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+
+/* Splash / startup overlay (accessible) */
+#splash{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.95);
+  color:var(--fg);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:120;
+}
+#splash[aria-hidden="true"] { display:none; }
+#splash-inner{
+  max-width:680px;
+  padding:1.75rem 2rem;
+  border-radius:.9rem;
+  border:1px solid var(--border);
+  background:#050505;
+  box-shadow:0 22px 60px rgba(0,0,0,.85);
+}
+#splash-inner h1{
+  margin-top:0;
+  font-size:1.4rem;
+}
+#splash-inner p{
+  font-size:.95rem;
+  opacity:.95;
+}
+kbd{
+  display:inline-block;
+  padding:0 .25rem;
+  border-radius:.25rem;
+  border:1px solid var(--border);
+  font-size:.8em;
+  font-family:inherit;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+</style>
+</head>
+<body>
+<!-- Splash Screen -->
+<div id="splash" role="dialog" aria-modal="true" aria-labelledby="splash-title" aria-describedby="splash-desc">
+  <div id="splash-inner">
+    <h1 id="splash-title">Ancient Script Picker 2025</h1>
+    <p id="splash-desc">
+      Press <kbd>F1</kbd> for license &amp; key bindings. Press any key or click to start.
+    </p>
+  </div>
+</div>
+
+<div class="app" id="appRoot">
+  <!-- Top controls -->
+  <header>
+    <textarea id="out" aria-label="Output text area for selected characters"></textarea>
+    <div class="button-group">
+      <button id="copy"      class="btn"       title="Copy all text to clipboard">Copy All</button>
+      <button id="clear"     class="btn"       title="Clear all text">Clear All</button>
+      <button id="btnSmaller" class="btn icon" title="Decrease text size (Keyboard: - or _)">−</button>
+      <button id="btnBigger"  class="btn icon" title="Increase text size (Keyboard: + or =)">+</button>
+      <button id="license"   class="btn"       title="Show license and keyboard shortcuts (F1)">F1</button>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <nav class="tabs" role="tablist" aria-label="Ancient script categories" id="tabs"></nav>
+
+  <!-- Content -->
+  <main id="content" class="content" role="region" aria-label="Character selection area">
+    <div class="sr-only" aria-live="polite" id="tab-announcement"></div>
+  </main>
+
+  <footer>
+    <strong>License:</strong> PNSL (Permissive Non-Sale License) — Copyright © 2025 Christopher Forster
+  </footer>
+</div>
+
+<!-- License Modal -->
+<div id="license-backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="license-title">
+  <div class="modal">
+    <header>
+      <div class="title" id="license-title">License &amp; guidance (PNSL)</div>
+      <button class="close-btn" id="license-close" title="Close dialog" aria-label="Close dialog">✕</button>
+    </header>
+    <div class="modal-body">
+      <pre id="license-text"></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- Data (assigned-only where applicable) ---------- */
+// Archaic Greek sample list
+const GREEK_ARCHAIC = [0x03DC,0x03DD,0x03DE,0x03DF,0x03E0,0x03E1,0x03FA,0x03FB,0x0370,0x0371];
+
+// Runes + Nordic (sectioned lines)
+const RUNE_SECTIONS = [
+  { h:'Elder Futhark', lines:['ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ'] },
+  { h:'Anglo-Saxon',   lines:['ᚠᚢᚦᚩᚱᚳᚷᚹᚻᚾᛁᛄᛇᛈᛉᛋᛏᛒᛖᛗᛚᛝᛞᛟᚪᚫᚣᛡᛠᛢᛣᛥᚸᛤ'] },
+  { h:'Younger Futhark', lines:[
+      'ᚠᚢᚦᚬᚱᚴᚼᚾᛁᛅᛋᛐᛏᛒᛘᛚᛦ',
+      'ᚠᚢᚦᚭᚱᚴᚽᚿᛁᛆᛌᛐᛓᛙᛚᛧ',
+      'ᚡᚤᚧᚵᛀᛂᛑᛔᛛ'
+  ]},
+  { h:'Runic punctuation', lines:['᛫᛬᛭'] },
+  { h:'Futhark Medieval runes', lines:['ᛆᛒᛍᛑᚧᛂᚠᚵᚶᚼᛁᛁᚴᛚᛛᛘᚿᛀᚮᚰᛔᛕᚴᚱᛋᛐᚦᚢᚡᚢᚴᛋᚤᛎᚰᛅᚯ'] },
+  { h:'Dalecarlian runes', lines:['ᛅᛒᛋᚦᛆᚠᚼᛁᚴᛚᛘᚿᛰ𐋐ᛩᚱᛌᛐᚢᛋᛌᛠÅᚯᛦ'] }
+];
+const NORDIC_SECTIONS = [
+  { h:'NORDIC', lines:['Áá Éé Ðð Þþ Íí Óó Úú Ýý Åå Ææ Ää Öö Øø'] },
+  { h:'NORTHERN SÁMI', lines:['Áá Čč Đđ Ŋŋ Šš Ŧŧ Žž Åå Ææ Øø'] },
+  { h:'SÁMI (OTHERS)', lines:['Ǥǥ Ǧǧ Ǩǩ Ǯǯ'] }
+];
+
+// Assigned-only ranges (Unicode v17.0)
+const RANGES_PHAISTOS = [[0x101D0,0x101FD]];
+const RANGES_LINEAR_A = [
+  [0x10600,0x10736],
+  [0x10740,0x10755],
+  [0x10760,0x10767]
+];
+const RANGES_LINEARB_SYL = [
+  [0x10000,0x1000B],
+  [0x1000D,0x10026],
+  [0x10028,0x1003A],
+  [0x1003C,0x1003D],
+  [0x1003F,0x1004D],
+  [0x10050,0x1005D]
+];
+const RANGES_LINEARB_IDE = [[0x10080,0x100FA]];
+
+// Etruscan (Old Italic) assigned-only: 10324..1032C are unassigned
+const RANGES_ETRUSCAN = [
+  [0x10300, 0x10323],
+  [0x1032D, 0x1032F]
+];
+
+// Tab model (7 tabs) — Etruscan before Runes
+const TABS = [
+  { title:'Phaistos Disc', kind:'ranges', ranges:RANGES_PHAISTOS, font:'phaistos' },
+  { title:'Linear A',      kind:'ranges', ranges:RANGES_LINEAR_A, font:'linearA' },
+  { title:'Linear B',      kind:'linearB', syll:RANGES_LINEARB_SYL, ideo:RANGES_LINEARB_IDE, font:'linearB' },
+  { title:'Archaic Greek', kind:'list',   list:GREEK_ARCHAIC },
+  { title:'Etruscan',      kind:'ranges', ranges:RANGES_ETRUSCAN, font:'etruscan' },
+  { title:'Runes',         kind:'sections', sections:RUNE_SECTIONS, font:'runes' },
+  { title:'Nordic',        kind:'sections', sections:NORDIC_SECTIONS }
+];
+
+// PNSL License text (shown in F1 modal)
+const PNSL_TEXT = `Ancient Script Picker 2025 - PNSL licensed
+
+Keys and Features
+Click any character to add to output
+Copy All: Copies entire output text
+Clear All: Clears output text
++ / − header buttons: Increase/decrease text size
++/− and =/_ keys: Keyboard shortcuts for sizing
+F1: Show this license information
+
+PNSL (Permissive Non-Sale License)
+Copyright © 2025 Christopher Forster
+
+1. Permission
+Permission to use, copy, modify, and/or distribute this software for any purpose
+without charging a fee specifically for the software itself is hereby granted,
+provided that the above copyright notice and this permission notice appear in all
+copies. You may not introduce more restrictions.
+
+2. No warranty
+THIS SOFTWARE IS PROVIDED 'AS IS' AND WITHOUT ANY WARRANTIES. IN NO EVENT SHALL
+THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT OR INDIRECT LOSSES
+OR DAMAGES ARISING FROM THE USE OF THIS SOFTWARE.
+
+3. Derivative works
+Any binary or combined work that directly incorporates PNSL-licensed code is
+considered a derivative work and must comply with this license. However, merely
+calling, linking to, or interacting with unmodified, separately distributed
+PNSL-licensed code does not, by itself, constitute a derivative work.`;
+
+/* ---------- Elements ---------- */
+const appRoot = document.getElementById('appRoot');
+const out = document.getElementById('out');
+const copyBtn = document.getElementById('copy');
+const clearBtn = document.getElementById('clear');
+const btnSmaller = document.getElementById('btnSmaller');
+const btnBigger  = document.getElementById('btnBigger');
+const tabsEl = document.getElementById('tabs');
+const content = document.getElementById('content');
+const tabAnnouncement = document.getElementById('tab-announcement');
+
+const licenseBtn = document.getElementById('license');
+const licenseBackdrop = document.getElementById('license-backdrop');
+const licenseClose = document.getElementById('license-close');
+const licenseText = document.getElementById('license-text');
+
+// Splash screen element
+const splash = document.getElementById('splash');
+
+let current = 0;
+
+/* ---------- Helpers ---------- */
+const hex = cp => cp.toString(16).toUpperCase().padStart(4,'0');
+
+function buildCharBtn(ch, cp){
+  const b = document.createElement('button');
+  b.className = 'char';
+  b.textContent = ch;
+  b.title = `Character: ${ch} (U+${hex(cp)})`;
+  b.setAttribute('data-cp', cp);
+  b.setAttribute('aria-label', `Insert ${ch} character`);
+  return b;
+}
+
+function renderRanges(ranges){
+  const grid = document.createElement('div');
+  grid.className='grid';
+  const frag = document.createDocumentFragment();
+  for(const [a,b] of ranges){
+    for(let cp=a; cp<=b; cp++){
+      frag.appendChild(buildCharBtn(String.fromCodePoint(cp), cp));
+    }
+  }
+  grid.appendChild(frag);
+  return grid;
+}
+
+function renderSections(sections){
+  const frag = document.createDocumentFragment();
+  for(const sec of sections){
+    const wrap = document.createElement('div');
+    wrap.className='section';
+    const h = document.createElement('h4');
+    h.textContent = sec.h;
+    wrap.appendChild(h);
+    for(const line of sec.lines){
+      const row = document.createElement('div');
+      row.className='line';
+      for(const ch of line){
+        if(ch===' ') continue;
+        row.appendChild(buildCharBtn(ch, ch.codePointAt(0)));
+      }
+      wrap.appendChild(row);
+    }
+    frag.appendChild(wrap);
+  }
+  return frag;
+}
+
+/* ---------- Font Sizing ---------- */
+let baseOutputFontSize = 16;
+let baseCharFontSize   = 24;
+let baseBtnSize        = 48;
+
+function setFontSizes(){
+  document.documentElement.style.setProperty('--output-font-size', baseOutputFontSize + 'px');
+  document.documentElement.style.setProperty('--char-font-size',   baseCharFontSize   + 'px');
+  document.documentElement.style.setProperty('--btn-size',         baseBtnSize        + 'px');
+}
+
+function changeFontSize(delta){
+  const oldSize = baseCharFontSize;
+
+  baseOutputFontSize += delta;
+  baseCharFontSize   += delta;
+  baseBtnSize        += Math.round(delta * 0.8);
+
+  baseOutputFontSize = Math.max(12, Math.min(32, baseOutputFontSize));
+  baseCharFontSize   = Math.max(16, Math.min(48, baseCharFontSize));
+  baseBtnSize        = Math.max(40, Math.min(64, baseBtnSize));
+
+  setFontSizes();
+
+  if (baseCharFontSize !== oldSize) {
+    const direction = baseCharFontSize > oldSize ? 'increased' : 'decreased';
+    tabAnnouncement.textContent = `Text size ${direction} to ${baseCharFontSize} pixels`;
+  }
+}
+
+/* ---------- Splash Screen ---------- */
+function splashVisible(){
+  return splash && splash.getAttribute('aria-hidden') !== 'true';
+}
+function hideSplash(){
+  if(!splash) return;
+  splash.setAttribute('aria-hidden', 'true');
+  if (out) out.focus();
+}
+
+/* ---------- Render tab ---------- */
+function renderTab(i){
+  current = i;
+  const tab = TABS[i];
+
+  // Update tab states and tabindex
+  const tabs = [...tabsEl.children];
+  tabs.forEach((b,idx)=>{
+    const isSelected = idx === i;
+    b.setAttribute('aria-selected', String(isSelected));
+    b.setAttribute('tabindex', isSelected ? '0' : '-1');
+  });
+
+  // Apply font class to app root so textarea + chars match
+  appRoot.classList.remove('phaistos','linearA','linearB','runes','etruscan');
+  if(tab.font) appRoot.classList.add(tab.font);
+
+  // Render content
+  content.innerHTML = '';
+  if(tab.kind==='ranges'){
+    const grid = renderRanges(tab.ranges);
+    content.appendChild(grid);
+
+    // Notes per tab
+    if (tab.title === 'Phaistos Disc') {
+      const note = document.createElement('p');
+      note.className = 'help-note';
+      note.innerHTML = `Note: These symbols may require a supporting font. If characters appear as boxes, install <a href="https://raw.githubusercontent.com/deepin-community/ttf-ancient-fonts/master/Aegean.ttf" target="_blank" rel="noopener">Aegean.ttf</a>`;
+      content.appendChild(note);
+    } else if (tab.title === 'Runes') {
+      const note = document.createElement('p');
+      note.className = 'help-note';
+      note.innerHTML = `Note: These symbols may require a supporting font. If characters appear as boxes, install <a href="https://fonts.google.com/noto/specimen/Noto+Sans+Runic" target="_blank" rel="noopener">Noto Sans Runic</a>`;
+      content.appendChild(note);
+    }
+  }else if(tab.kind==='list'){
+    const grid = document.createElement('div');
+    grid.className='grid';
+    const frag = document.createDocumentFragment();
+    for(const cp of tab.list){
+      frag.appendChild(buildCharBtn(String.fromCodePoint(cp), cp));
+    }
+    grid.appendChild(frag);
+    content.appendChild(grid);
+  }else if(tab.kind==='sections'){
+    content.appendChild(renderSections(tab.sections));
+    if (tab.title === 'Runes') {
+      const note = document.createElement('p');
+      note.className = 'help-note';
+      note.innerHTML = `Note: These symbols may require a supporting font. If characters appear as boxes, install <a href="https://fonts.google.com/noto/specimen/Noto+Sans+Runic" target="_blank" rel="noopener">Noto Sans Runic</a>`;
+      content.appendChild(note);
+    }
+  }else if(tab.kind==='linearB'){
+    const s1 = document.createElement('div'); s1.className='section';
+    const h1 = document.createElement('h4'); h1.textContent='Linear B — Syllabary'; s1.appendChild(h1);
+    s1.appendChild(renderRanges(tab.syll));
+
+    const s2 = document.createElement('div'); s2.className='section';
+    const h2 = document.createElement('h4'); h2.textContent='Linear B — Ideograms'; s2.appendChild(h2);
+    s2.appendChild(renderRanges(tab.ideo));
+
+    content.appendChild(s1);
+    content.appendChild(s2);
+  }
+
+  tabAnnouncement.textContent = `Now viewing ${tab.title} characters`;
+  content.scrollTop = 0;
+}
+
+/* ---------- License modal ---------- */
+function showLicense(){
+  licenseText.textContent = PNSL_TEXT;
+  licenseBackdrop.style.display = 'flex';
+  licenseClose.focus();
+}
+function hideLicense(){
+  licenseBackdrop.style.display = 'none';
+  licenseBtn.focus();
+}
+
+/* ---------- Events ---------- */
+// Insert character
+content.addEventListener('click', (e)=>{
+  const t = e.target;
+  if(t && t.classList.contains('char')){
+    out.setRangeText(t.textContent, out.selectionEnd, out.selectionEnd, 'end');
+    out.focus();
+  }
+});
+
+// Copy / Clear
+copyBtn.addEventListener('click', async ()=> {
+  if(!out.value) {
+    tabAnnouncement.textContent = 'No text to copy';
+    return;
+  }
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(out.value);
+      tabAnnouncement.textContent = 'Text copied to clipboard';
+    }else{
+      out.select();
+      const ok = document.execCommand('copy');
+      out.setSelectionRange(out.value.length,out.value.length);
+      tabAnnouncement.textContent = ok ? 'Text copied to clipboard' : 'Copy failed';
+    }
+  }catch{
+    tabAnnouncement.textContent = 'Copy failed';
+  }
+});
+
+clearBtn.addEventListener('click', ()=> {
+  out.value='';
+  out.focus();
+  tabAnnouncement.textContent = 'Text cleared';
+});
+
+// Font sizing buttons
+btnSmaller.addEventListener('click', ()=> changeFontSize(-2));
+btnBigger .addEventListener('click', ()=> changeFontSize(2));
+
+// License modal
+licenseBtn.addEventListener('click', showLicense);
+licenseClose.addEventListener('click', hideLicense);
+licenseBackdrop.addEventListener('click', (ev)=>{
+  if(ev.target === licenseBackdrop) hideLicense();
+});
+
+// Splash hide only when clicking splash itself
+splash.addEventListener('click', hideSplash);
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (ev)=>{
+  // Hide splash on any key (except when typing in textarea)
+  if(ev.target !== out && splash && splash.getAttribute('aria-hidden') !== 'true'){
+    hideSplash();
+    return;
+  }
+
+  // Tab navigation with arrow keys when a tab has focus
+  if((ev.key === 'ArrowRight' || ev.key === 'ArrowLeft') && ev.target.classList.contains('tab')) {
+    ev.preventDefault();
+    const tabs = Array.from(tabsEl.children);
+    const currentIndex = tabs.indexOf(ev.target);
+    let newIndex = ev.key === 'ArrowRight'
+      ? (currentIndex + 1) % tabs.length
+      : (currentIndex - 1 + tabs.length) % tabs.length;
+    tabs[newIndex].focus();
+    renderTab(newIndex);
+    return;
+  }
+
+  // Home/End to jump first/last tab
+  if ((ev.key === 'Home' || ev.key === 'End') && ev.target.classList.contains('tab')) {
+    ev.preventDefault();
+    const tabs = Array.from(tabsEl.children);
+    const newIndex = ev.key === 'Home' ? 0 : tabs.length - 1;
+    tabs[newIndex].focus();
+    renderTab(newIndex);
+    return;
+  }
+
+  // Font sizing: only when not typing in the textarea
+  if(ev.target !== out){
+    if(ev.key === '+' || ev.key === '='){
+      ev.preventDefault();
+      changeFontSize(2);
+    }else if(ev.key === '-' || ev.key === '_'){
+      ev.preventDefault();
+      changeFontSize(-2);
+    }
+  }
+
+  // Global shortcuts
+  if(ev.key === 'F1'){
+    ev.preventDefault();
+    showLicense();
+  }else if(ev.key === 'Escape'){
+    if(licenseBackdrop.style.display === 'flex'){
+      ev.preventDefault();
+      hideLicense();
+    }
+  }
+});
+
+// Build tabs once and init fonts
+(function init(){
+  setFontSizes();
+
+  const frag = document.createDocumentFragment();
+  TABS.forEach((t,idx)=>{
+    const b = document.createElement('button');
+    b.className='tab';
+    b.role='tab';
+    b.textContent=t.title;
+    b.setAttribute('aria-selected', String(idx===0));
+    b.setAttribute('tabindex', idx === 0 ? '0' : '-1');
+    b.addEventListener('click', ()=> {
+      renderTab(idx);
+      b.focus();
+    });
+    frag.appendChild(b);
+  });
+  tabsEl.appendChild(frag);
+  renderTab(0);
+})();
+</script>
+</body>
+</html>
